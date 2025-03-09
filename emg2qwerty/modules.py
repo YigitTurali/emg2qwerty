@@ -278,3 +278,26 @@ class TDSConvEncoder(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.tds_conv_blocks(inputs)  # (T, N, num_features)
+
+
+class ResidualBlock(nn.Module):
+    """Residual block for CNN with skip connection"""
+    def __init__(self, channels, kernel_size=3):
+        super().__init__()
+        self.conv1 = nn.Conv1d(
+            channels, channels, kernel_size=kernel_size, padding=(kernel_size-1)//2
+        )
+        self.bn1 = nn.BatchNorm1d(channels)
+        self.conv2 = nn.Conv1d(
+            channels, channels, kernel_size=kernel_size, padding=(kernel_size-1)//2
+        )
+        self.bn2 = nn.BatchNorm1d(channels)
+        self.relu = nn.ReLU()
+        
+    def forward(self, x):
+        residual = x
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.bn2(self.conv2(x))
+        x += residual  # Skip connection
+        x = self.relu(x)
+        return x
