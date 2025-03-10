@@ -6,14 +6,14 @@
 #   block_channels: [24, 24, 24, 24]
 #   kernel_width: 32  # Total temporal receptive field of 125 samples given 4 layers
 
-module:
-  # CNN + LSTM Module
-  _target_: emg2qwerty.lightning.CNNLSTMModule
-  in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
-  cnn_channels: [32, 64, 128, 256]
-  lstm_hidden_size: 512
-  lstm_num_layers: 2
-  dropout: 0.2
+# module:
+#   # CNN + LSTM Module
+#   _target_: emg2qwerty.lightning.CNNLSTMModule
+#   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
+#   cnn_channels: [32, 64, 128, 256]
+#   lstm_hidden_size: 512
+#   lstm_num_layers: 2
+#   dropout: 0.2
 
 # module:
 #   # CNN + RNN Module
@@ -26,6 +26,13 @@ module:
 #   dropout: 0.2
 #   adaptive_pool_size: 2
 
+module:
+  # Pure RNN Module
+  _target_: emg2qwerty.lightning.RNNModule
+  in_features: 33  # freq * channels = (n_fft // 2 + 1) * 16
+  rnn_hidden_size: 1024
+  rnn_num_layers: 5
+  dropout: 0.2
 
 datamodule:
   _target_: emg2qwerty.lightning.WindowedEMGDataModule
