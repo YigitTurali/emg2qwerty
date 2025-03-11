@@ -53,6 +53,13 @@ module:
   freq_components: 32
 
 
+module:
+  # Pure RNN Module
+  _target_: emg2qwerty.lightning.RNNModule
+  in_features: 33  # freq * channels = (n_fft // 2 + 1) * 16
+  rnn_hidden_size: 1024
+  rnn_num_layers: 5
+  dropout: 0.2
 
 datamodule:
   _target_: emg2qwerty.lightning.WindowedEMGDataModule

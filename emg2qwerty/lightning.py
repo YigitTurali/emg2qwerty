@@ -936,3 +936,141 @@ class PositionalEncoding(nn.Module):
             x = x + self.pe[offset:offset + seq_len]
             
         return self.dropout(x)
+
+class RNNModule(pl.LightningModule):
+    NUM_BANDS: int = 2
+    ELECTRODE_CHANNELS: int = 16
+
+    def __init__(
+        self,
+        in_features: int,
+        rnn_hidden_size: int = 256,
+        rnn_num_layers: int = 3,
+        dropout: float = 0.2,
+        optimizer: dict = None,
+        lr_scheduler: dict = None,
+        decoder: dict = None,
+    ) -> None:
+        super().__init__()
+        self.save_hyperparameters()
+
+        # Spectrogram normalization
+        self.spec_norm = SpectrogramNorm(channels=self.NUM_BANDS * self.ELECTRODE_CHANNELS)
+        
+        # RNN for temporal processing
+        rnn_input_size = self.NUM_BANDS * self.ELECTRODE_CHANNELS * in_features
+        self.rnn = nn.RNN(
+            input_size=rnn_input_size,
+            hidden_size=rnn_hidden_size,
+            num_layers=rnn_num_layers,
+            batch_first=False,  # (T, N, features)
+            dropout=dropout if rnn_num_layers > 1 else 0,
+            bidirectional=True,
+            nonlinearity='tanh'
+        )
+        
+        # Output projection
+        self.projection = nn.Sequential(
+            nn.Linear(rnn_hidden_size * 2, 256),  # *2 for bidirectional
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, charset().num_classes),
+            nn.LogSoftmax(dim=-1)
+        )
+        
+        # CTC Loss
+        self.ctc_loss = nn.CTCLoss(blank=charset().null_class)
+        
+        # Decoder
+        self.decoder = instantiate(decoder) if decoder else None
+        
+        # Metrics
+        metrics = MetricCollection([CharacterErrorRates()])
+        self.metrics = nn.ModuleDict(
+            {
+                f"{phase}_metrics": metrics.clone(prefix=f"{phase}/")
+                for phase in ["train", "val", "test"]
+            }
+        )
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        # Normalize spectrogram
+        x = self.spec_norm(inputs)
+        
+        # Reshape for RNN: (T, N, features)
+        T, N, bands, C, freq = x.shape
+        x = x.view(T, N, -1)
+        
+        # Apply RNN
+        x, _ = self.rnn(x)
+        
+        # Project to character space
+        x = self.projection(x)
+        
+        return x
+
+    def _step(
+        self, phase: str, batch: dict[str, torch.Tensor], *args, **kwargs
+    ) -> torch.Tensor:
+        inputs = batch["inputs"]
+        targets = batch["targets"]
+        input_lengths = batch["input_lengths"]
+        target_lengths = batch["target_lengths"]
+        N = len(input_lengths)
+
+        emissions = self.forward(inputs)
+        emission_lengths = torch.tensor([emissions.shape[0]] * N, device=emissions.device)
+
+        loss = self.ctc_loss(
+            log_probs=emissions,
+            targets=targets.transpose(0, 1),
+            input_lengths=emission_lengths,
+            target_lengths=target_lengths,
+        )
+
+        # Decode emissions
+        if self.decoder:
+            predictions = self.decoder.decode_batch(
+                emissions=emissions.detach().cpu().numpy(),
+                emission_lengths=emission_lengths.detach().cpu().numpy(),
+            )
+            
+            metrics = self.metrics[f"{phase}_metrics"]
+            targets = targets.detach().cpu().numpy()
+            target_lengths = target_lengths.detach().cpu().numpy()
+            for i in range(N):
+                target = LabelData.from_labels(targets[: target_lengths[i], i])
+                metrics.update(prediction=predictions[i], target=target)
+        
+        self.log(f"{phase}/loss", loss, batch_size=N, sync_dist=True)
+        return loss
+
+    def _epoch_end(self, phase: str) -> None:
+        metrics = self.metrics[f"{phase}_metrics"]
+        self.log_dict(metrics.compute(), sync_dist=True)
+        metrics.reset()
+
+    def training_step(self, batch, batch_idx, *args, **kwargs) -> torch.Tensor:
+        return self._step("train", batch, *args, **kwargs)
+
+    def validation_step(self, batch, batch_idx, *args, **kwargs) -> torch.Tensor:
+        return self._step("val", batch, *args, **kwargs)
+
+    def test_step(self, batch, batch_idx, *args, **kwargs) -> torch.Tensor:
+        return self._step("test", batch, *args, **kwargs)
+
+    def on_train_epoch_end(self) -> None:
+        self._epoch_end("train")
+
+    def on_validation_epoch_end(self) -> None:
+        self._epoch_end("val")
+
+    def on_test_epoch_end(self) -> None:
+        self._epoch_end("test")
+
+    def configure_optimizers(self) -> dict[str, any]:
+        return utils.instantiate_optimizer_and_scheduler(
+            self.parameters(),
+            optimizer_config=self.hparams.optimizer,
+            lr_scheduler_config=self.hparams.lr_scheduler,
+        )
