@@ -7,8 +7,10 @@
 from collections.abc import Sequence
 
 import torch
-from torch import nn
-
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+from scipy.interpolate import CubicSpline
 
 class SpectrogramNorm(nn.Module):
     """A `torch.nn.Module` that applies 2D batch normalization over spectrogram
@@ -301,3 +303,144 @@ class ResidualBlock(nn.Module):
         x += residual  # Skip connection
         x = self.relu(x)
         return x
+
+class TimeWarpingLayer(nn.Module):
+    """
+    Time warping with smooth spline interpolation.
+    """
+    def __init__(self, warp_factor_range=(0.9, 1.1), p=0.5):
+        super().__init__()
+        self.warp_factor_range = warp_factor_range
+        self.p = p
+        
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        if not self.training or torch.rand(1).item() > self.p:
+            return inputs
+        
+        T, N, bands, C, freq = inputs.shape
+        device = inputs.device
+        warp_factors = torch.rand(N, device=device) * (self.warp_factor_range[1] - self.warp_factor_range[0]) + self.warp_factor_range[0]
+        output = torch.zeros_like(inputs)
+        
+        for b in range(N):
+            factor = warp_factors[b].item()
+            src_time = np.arange(T)
+            dst_time = np.linspace(0, T - 1, int(T * factor))
+            
+            for ch in range(bands * C * freq):
+                x_reshaped = inputs[:, b].reshape(T, -1)[:, ch].cpu().numpy()
+                cs = CubicSpline(src_time, x_reshaped)
+                warped_signal = cs(dst_time)
+                
+                if len(warped_signal) < T:
+                    padding = np.zeros(T - len(warped_signal))
+                    warped_signal = np.concatenate([warped_signal, padding])
+                
+                warped_signal_tensor = torch.tensor(warped_signal, device=device)
+                if warped_signal_tensor.shape[0] > T:
+                    warped_signal_tensor = warped_signal_tensor[:T]  # Truncate if longer
+                elif warped_signal_tensor.shape[0] < T:
+                    padding = torch.zeros(T - warped_signal_tensor.shape[0], device=device)
+                    warped_signal_tensor = torch.cat([warped_signal_tensor, padding])  # Pad if shorter
+                output[:, b].reshape(T, -1)[:, ch] = warped_signal_tensor
+        
+        return output
+
+
+class AmplitudeTransformLayer(nn.Module):
+    """
+    Amplitude scaling and noise augmentation.
+    """
+    def __init__(self, scale_range=(0.8, 1.2), noise_std=0.02, p=0.5):
+        super().__init__()
+        self.scale_range = scale_range
+        self.noise_std = noise_std
+        self.p = p
+        
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        if not self.training or torch.rand(1).item() > self.p:
+            return inputs
+        
+        T, N, bands, C, freq = inputs.shape
+        device = inputs.device
+        
+        scales = torch.rand(N, bands, C, 1, device=device) * (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
+        output = inputs * scales.unsqueeze(0)
+        
+        if torch.rand(1).item() > 0.5:
+            noise_level = torch.rand(1, device=device) * self.noise_std
+            noise = torch.randn_like(output) * noise_level
+            output = output + noise
+            
+        return output
+
+
+class SoftChannelSelectionLayer(nn.Module):
+    """
+    Soft attention-based channel selection.
+    """
+    def __init__(self, input_channels, output_channels):
+        super().__init__()
+        self.input_channels = input_channels
+        self.output_channels = output_channels
+        self.channel_weights = nn.Parameter(torch.randn(input_channels, output_channels))
+        
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        T, N, bands, C, freq = inputs.shape
+        device = inputs.device
+        
+        attention_weights = F.softmax(self.channel_weights, dim=0)  # Soft selection
+        inputs_reshaped = inputs.view(T, N, bands, C * freq)
+        selected = torch.einsum('cf,tbnc->tbnf', attention_weights, inputs_reshaped)
+        return selected.view(T, N, bands, self.output_channels, freq)
+
+
+class SpectralReductionLayer(nn.Module):
+    """
+    Learnable spectral transformation instead of PCA.
+    """
+    def __init__(self, in_features, out_features):
+        super().__init__()
+        self.conv = nn.Conv1d(in_features, out_features, kernel_size=1)
+    
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        T, N, bands, C, freq = inputs.shape
+        x = inputs.permute(0, 1, 2, 3, 4).reshape(T * N * bands * C, freq)
+        x = self.conv(x.unsqueeze(1)).squeeze(1)  # Apply learnable transformation
+        return x.view(T, N, bands, C, -1)
+
+
+class EMGPreprocessingPipeline(nn.Module):
+    def __init__(self, bands=2, channels=16, use_time_warping=True, use_amplitude_transform=True,
+                 use_channel_selection=True, use_frequency_reduction=True,
+                 channels_to_keep=8, freq_components=32):
+        super().__init__()
+        self.bands = bands
+        self.channels = channels
+        layers = []
+        
+        if use_time_warping:
+            layers.append(('time_warp', TimeWarpingLayer()))
+        if use_amplitude_transform:
+            layers.append(('amplitude', AmplitudeTransformLayer()))
+        if use_channel_selection:
+            layers.append(('channel_select', SoftChannelSelectionLayer(channels, channels_to_keep)))
+            self.channels = channels_to_keep
+        if use_frequency_reduction:
+            layers.append(('freq_reduce', SpectralReductionLayer(freq_components, freq_components // 2)))
+            
+        self.layers = nn.ModuleDict(dict(layers))
+        self.layer_order = [name for name, _ in layers]
+        
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        x = inputs
+        for name in self.layer_order:
+            if name == 'freq_reduce':
+                continue
+            x = self.layers[name](x)
+        return x
+    
+    def process_spectrograms(self, spectrograms: torch.Tensor) -> torch.Tensor:
+        if 'freq_reduce' in self.layers:
+            return self.layers['freq_reduce'](spectrograms)
+        return spectrograms

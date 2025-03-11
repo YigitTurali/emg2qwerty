@@ -5,26 +5,53 @@
 #   mlp_features: [384]
 #   block_channels: [24, 24, 24, 24]
 #   kernel_width: 32  # Total temporal receptive field of 125 samples given 4 layers
+#   use_time_warping: False
+#   use_amplitude_transform: False
+#   use_spectrogram: False
+#   use_wavelet: True
+#   use_channel_selection: False
+#   use_pca: False
 
-module:
-  # CNN + LSTM Module
-  _target_: emg2qwerty.lightning.CNNLSTMModule
-  in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
-  cnn_channels: [32, 64, 128, 256]
-  lstm_hidden_size: 512
-  lstm_num_layers: 2
-  dropout: 0.2
+# module:
+#   # CNN + LSTM Module
+#   _target_: emg2qwerty.lightning.CNNLSTMModule
+#   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
+#   cnn_channels: [32, 64, 128, 256]
+#   lstm_hidden_size: 512
+#   lstm_num_layers: 2
+#   dropout: 0.2
 
 # module:
 #   # CNN + RNN Module
-#   _target_: emg2qwerty.lightning.CNNRNNModule
+#   _target_: emg2qwerty.lightning.CNNGRUModule
 #   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
 #   cnn_channels: [32, 64, 128, 256]
-#   kernel_size: 3
-#   rnn_hidden_size: 512
-#   rnn_num_layers: 2
+#   gru_hidden_size: 512
+#   gru_num_layers: 2
 #   dropout: 0.2
-#   adaptive_pool_size: 2
+#   adaptive_pool_size: 1
+
+module:
+  # CNN + Transformer Module
+  _target_: emg2qwerty.lightning.CNNTransformerModule
+  in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
+  cnn_channels: [32, 64, 128, 256]
+  kernel_size: 3
+  transformer_dim: 256
+  nhead: 8
+  num_encoder_layers: 6
+  dim_feedforward: 1024
+  dropout: 0.2
+  max_seq_length: 10000
+  chunk_size: 512
+  chunk_overlap: 128
+  use_time_warping: True
+  use_amplitude_transform: True
+  use_channel_selection: False
+  use_frequency_reduction: False
+  channels_to_keep: 8
+  freq_components: 32
+
 
 
 datamodule:
