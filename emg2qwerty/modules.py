@@ -8,9 +8,9 @@ from collections.abc import Sequence
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import functional as F
+import kymatio
 import numpy as np
-from scipy.interpolate import CubicSpline
 
 class SpectrogramNorm(nn.Module):
     """A `torch.nn.Module` that applies 2D batch normalization over spectrogram
@@ -303,144 +303,154 @@ class ResidualBlock(nn.Module):
         x += residual  # Skip connection
         x = self.relu(x)
         return x
-
-class TimeWarpingLayer(nn.Module):
-    """
-    Time warping with smooth spline interpolation.
-    """
-    def __init__(self, warp_factor_range=(0.9, 1.1), p=0.5):
-        super().__init__()
-        self.warp_factor_range = warp_factor_range
-        self.p = p
-        
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        if not self.training or torch.rand(1).item() > self.p:
-            return inputs
-        
-        T, N, bands, C, freq = inputs.shape
-        device = inputs.device
-        warp_factors = torch.rand(N, device=device) * (self.warp_factor_range[1] - self.warp_factor_range[0]) + self.warp_factor_range[0]
-        output = torch.zeros_like(inputs)
-        
-        for b in range(N):
-            factor = warp_factors[b].item()
-            src_time = np.arange(T)
-            dst_time = np.linspace(0, T - 1, int(T * factor))
-            
-            for ch in range(bands * C * freq):
-                x_reshaped = inputs[:, b].reshape(T, -1)[:, ch].cpu().numpy()
-                cs = CubicSpline(src_time, x_reshaped)
-                warped_signal = cs(dst_time)
-                
-                if len(warped_signal) < T:
-                    padding = np.zeros(T - len(warped_signal))
-                    warped_signal = np.concatenate([warped_signal, padding])
-                
-                warped_signal_tensor = torch.tensor(warped_signal, device=device)
-                if warped_signal_tensor.shape[0] > T:
-                    warped_signal_tensor = warped_signal_tensor[:T]  # Truncate if longer
-                elif warped_signal_tensor.shape[0] < T:
-                    padding = torch.zeros(T - warped_signal_tensor.shape[0], device=device)
-                    warped_signal_tensor = torch.cat([warped_signal_tensor, padding])  # Pad if shorter
-                output[:, b].reshape(T, -1)[:, ch] = warped_signal_tensor
-        
-        return output
-
-
-class AmplitudeTransformLayer(nn.Module):
-    """
-    Amplitude scaling and noise augmentation.
-    """
-    def __init__(self, scale_range=(0.8, 1.2), noise_std=0.02, p=0.5):
-        super().__init__()
-        self.scale_range = scale_range
-        self.noise_std = noise_std
-        self.p = p
-        
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        if not self.training or torch.rand(1).item() > self.p:
-            return inputs
-        
-        T, N, bands, C, freq = inputs.shape
-        device = inputs.device
-        
-        scales = torch.rand(N, bands, C, 1, device=device) * (self.scale_range[1] - self.scale_range[0]) + self.scale_range[0]
-        output = inputs * scales.unsqueeze(0)
-        
-        if torch.rand(1).item() > 0.5:
-            noise_level = torch.rand(1, device=device) * self.noise_std
-            noise = torch.randn_like(output) * noise_level
-            output = output + noise
-            
-        return output
-
-
-class SoftChannelSelectionLayer(nn.Module):
-    """
-    Soft attention-based channel selection.
-    """
-    def __init__(self, input_channels, output_channels):
-        super().__init__()
-        self.input_channels = input_channels
-        self.output_channels = output_channels
-        self.channel_weights = nn.Parameter(torch.randn(input_channels, output_channels))
-        
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        T, N, bands, C, freq = inputs.shape
-        device = inputs.device
-        
-        attention_weights = F.softmax(self.channel_weights, dim=0)  # Soft selection
-        inputs_reshaped = inputs.view(T, N, bands, C * freq)
-        selected = torch.einsum('cf,tbnc->tbnf', attention_weights, inputs_reshaped)
-        return selected.view(T, N, bands, self.output_channels, freq)
-
-
-class SpectralReductionLayer(nn.Module):
-    """
-    Learnable spectral transformation instead of PCA.
-    """
-    def __init__(self, in_features, out_features):
-        super().__init__()
-        self.conv = nn.Conv1d(in_features, out_features, kernel_size=1)
     
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        T, N, bands, C, freq = inputs.shape
-        x = inputs.permute(0, 1, 2, 3, 4).reshape(T * N * bands * C, freq)
-        x = self.conv(x.unsqueeze(1)).squeeze(1)  # Apply learnable transformation
+class ChannelAttention(nn.Module):
+    def __init__(self, in_channels, reduction_ratio=4):
+        super().__init__()
+        self.fc1 = nn.Linear(in_channels, in_channels // reduction_ratio)
+        self.fc2 = nn.Linear(in_channels // reduction_ratio, in_channels)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        T, N, bands, C, freq = x.shape  # (Time, Batch, Bands, Channels, Frequency)
+        attn = self.fc1(x.mean(dim=4))  # Global pooling over frequency
+        attn = self.fc2(F.relu(attn))
+        attn = self.sigmoid(attn).unsqueeze(4)  # Reshape for broadcasting
+        return x * attn  # Apply attention
+
+
+class WaveletTransform(nn.Module):
+    def __init__(self, J=5):
+        super().__init__()
+        self.J = J
+        self.wavelet = None  # Initialize wavelet transform as None, set dynamically in forward
+
+    def forward(self, x):
+        T, N, bands, C, freq = x.shape  # (Time, Batch, Bands, Channels, Frequency)
+        
+        # Ensure wavelet transform is initialized with the correct frequency shape
+        if self.wavelet is None:
+            self.wavelet = kymatio.Scattering1D(J=self.J, shape=(freq,), frontend='torch').to(x.device)
+        
+        # Ensure x is in (batch, time) format before wavelet processing
+        x = x.reshape(T * N * bands * C, freq).contiguous()
+        
+        # Apply wavelet transform
+        x = self.wavelet(x)
+
+        # Restore original shape
         return x.view(T, N, bands, C, -1)
-
-
-class EMGPreprocessingPipeline(nn.Module):
-    def __init__(self, bands=2, channels=16, use_time_warping=True, use_amplitude_transform=True,
-                 use_channel_selection=True, use_frequency_reduction=True,
-                 channels_to_keep=8, freq_components=32):
-        super().__init__()
-        self.bands = bands
-        self.channels = channels
-        layers = []
-        
-        if use_time_warping:
-            layers.append(('time_warp', TimeWarpingLayer()))
-        if use_amplitude_transform:
-            layers.append(('amplitude', AmplitudeTransformLayer()))
-        if use_channel_selection:
-            layers.append(('channel_select', SoftChannelSelectionLayer(channels, channels_to_keep)))
-            self.channels = channels_to_keep
-        if use_frequency_reduction:
-            layers.append(('freq_reduce', SpectralReductionLayer(freq_components, freq_components // 2)))
-            
-        self.layers = nn.ModuleDict(dict(layers))
-        self.layer_order = [name for name, _ in layers]
-        
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        x = inputs
-        for name in self.layer_order:
-            if name == 'freq_reduce':
-                continue
-            x = self.layers[name](x)
-        return x
     
-    def process_spectrograms(self, spectrograms: torch.Tensor) -> torch.Tensor:
-        if 'freq_reduce' in self.layers:
-            return self.layers['freq_reduce'](spectrograms)
-        return spectrograms
+class SincConv1D(nn.Module):
+    def __init__(self, out_channels, kernel_size=101, sample_rate=2000, min_low_hz=20, min_band_hz=50, max_freq=850):
+        super(SincConv1D, self).__init__()
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.sample_rate = sample_rate
+        self.min_low_hz = min_low_hz
+        self.min_band_hz = min_band_hz
+        self.max_freq = max_freq
+
+        # Learnable frequency bands
+        self.low_hz = nn.Parameter(torch.rand(out_channels) * (max_freq - min_low_hz) + min_low_hz)
+        self.band_hz = nn.Parameter(torch.rand(out_channels) * (max_freq - min_band_hz) + min_band_hz)
+
+        # Hamming window
+        n_lin = torch.linspace(0, kernel_size, steps=kernel_size)
+        self.window = 0.54 - 0.46 * torch.cos(2 * np.pi * n_lin / kernel_size)
+
+        self.n = (kernel_size - 1) / 2
+
+    def sinc(self, x):
+        return torch.where(x == 0, torch.ones_like(x), torch.sin(x) / x)
+
+    def forward(self, x):
+        T, N, bands, C, freq = x.shape
+        x = x.reshape(T * N * bands, C, freq)  
+
+        # Compute frequency filters
+        low = self.min_low_hz + torch.abs(self.low_hz)
+        high = torch.clamp(low + self.min_band_hz + torch.abs(self.band_hz), self.min_low_hz, self.max_freq)
+
+        band_pass_left = (2 * high[:, None] * self.sinc(2 * high[:, None] * (self.n - self.n))) - \
+                         (2 * low[:, None] * self.sinc(2 * low[:, None] * (self.n - self.n)))
+        band_pass_left = band_pass_left * self.window
+
+        band_pass_right = torch.flip(band_pass_left, dims=[1])
+        band_pass = band_pass_left + band_pass_right
+
+        x = F.conv1d(x, band_pass.view(self.out_channels, 1, self.kernel_size), stride=1, padding=self.kernel_size // 2, groups=C)
+
+        return x.view(T, N, bands, self.out_channels, -1)
+
+def rotate_electrodes(x):
+    """
+    Randomly shifts electrode positions by -1, 0, or +1.
+    Args:
+        x: Tensor of shape (T, N, bands, C, freq)
+    Returns:
+        Tensor with rotated channels
+    """
+    shift = torch.randint(-1, 2, (1,)).item()  # Shift by -1, 0, or +1
+    return torch.roll(x, shifts=shift, dims=3)  # Rotate along channel axis (C)
+
+
+def time_warp(x, warp_factor_range=(0.9, 1.1), p=0.5):
+    """
+    Applies non-linear time warping to simulate variations in typing speed.
+    
+    Args:
+        x: Tensor of shape (T, N, bands, C, freq)
+        warp_factor_range: Tuple defining min/max time stretch factors.
+        p: Probability of applying time warping.
+
+    Returns:
+        Warped tensor of same shape.
+    """
+    if torch.rand(1).item() > p:
+        return x  # Skip augmentation with probability (1 - p)
+    
+    T, N, bands, C, freq = x.shape
+    device = x.device
+    
+    # Generate a random warping factor for each batch sample
+    warp_factors = torch.rand(N, device=device) * (warp_factor_range[1] - warp_factor_range[0]) + warp_factor_range[0]
+    
+    # Prepare output tensor
+    output = torch.zeros_like(x)
+    
+    for b in range(N):
+        factor = warp_factors[b].item()
+        src_time = torch.arange(T, dtype=torch.float32, device=device)
+        
+        if factor < 1.0:
+            # Compress time
+            target_t = int(T * factor)
+            dst_time = torch.linspace(0, T-1, target_t, device=device)
+            warped = F.interpolate(
+                x[:, b].reshape(T, -1).permute(1, 0).unsqueeze(0),
+                size=target_t,
+                mode='linear',
+                align_corners=True
+            )
+            warped = warped.squeeze(0).permute(1, 0)
+            padding = torch.zeros(T - target_t, bands * C * freq, device=device)
+            warped = torch.cat([warped, padding], dim=0)
+        
+        else:
+            # Stretch time
+            target_t = int(T * factor)
+            dst_time = torch.linspace(0, target_t - 1, T, device=device)
+            temp = F.interpolate(
+                x[:, b].reshape(T, -1).permute(1, 0).unsqueeze(0),
+                size=target_t,
+                mode='linear',
+                align_corners=True
+            )
+            indices = torch.linspace(0, target_t-1, T, device=device).long()
+            warped = temp.squeeze(0).permute(1, 0)[indices]
+
+        # Reshape back
+        output[:, b] = warped.reshape(T, bands, C, freq)
+
+    return output

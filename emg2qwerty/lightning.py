@@ -25,7 +25,11 @@ from emg2qwerty.metrics import CharacterErrorRates
 from emg2qwerty.modules import (
     MultiBandRotationInvariantMLP,
     SpectrogramNorm,
-    TDSConvEncoder
+    TDSConvEncoder,
+    ChannelAttention,
+    SincConv1D,
+    rotate_electrodes,
+    time_warp
 )
 from emg2qwerty.transforms import Transform
 
@@ -287,6 +291,7 @@ class CNNLSTMModule(pl.LightningModule):
         in_features: int,
         cnn_channels: list = [32, 64, 128],
         kernel_size: int = 3,
+        sinc_conv_kernel_size: int = 101,
         lstm_hidden_size: int = 256,
         lstm_num_layers: int = 2,
         dropout: float = 0.2,
@@ -301,7 +306,11 @@ class CNNLSTMModule(pl.LightningModule):
         # inputs: (T, N, bands=2, electrode_channels=16, freq)
         
         # Spectrogram normalization
+        self.channel_attention = ChannelAttention(in_channels=self.ELECTRODE_CHANNELS)
         self.spec_norm = SpectrogramNorm(channels=self.NUM_BANDS * self.ELECTRODE_CHANNELS)
+        self.sinc_conv = SincConv1D(out_channels=self.NUM_BANDS * self.ELECTRODE_CHANNELS)
+        self.rotate_electrodes = rotate_electrodes
+        self.time_warp = time_warp
         
         # CNN Feature Extractor
         first_cnn_in_channels = self.NUM_BANDS * self.ELECTRODE_CHANNELS
@@ -356,9 +365,17 @@ class CNNLSTMModule(pl.LightningModule):
             }
         )
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor,phase) -> torch.Tensor:
         # inputs: (T, N, bands=2, C=16, freq)
-        x = self.spec_norm(inputs)
+        # x = self.spec_norm(inputs)
+        if phase == "train":
+            inputs = self.rotate_electrodes(inputs)
+            inputs = self.time_warp(inputs)
+        
+        x = self.channel_attention(inputs)  # Step 1: Channel Selection
+        x = self.spec_norm(x)  # Step 2: Spectrogram
+        # x = self.wavelet_transform(x)  # Step 3: Wavelet Transform
+
         
         # Reshape for CNN: (T*N, bands*C, freq)
         T, N, bands, C, freq = x.shape
@@ -381,6 +398,193 @@ class CNNLSTMModule(pl.LightningModule):
         x = self.projection(x)
         
         return x
+
+    def _step(
+        self, phase: str, batch: dict[str, torch.Tensor], *args, **kwargs
+    ) -> torch.Tensor:
+        inputs = batch["inputs"]
+        targets = batch["targets"]
+        input_lengths = batch["input_lengths"]
+        target_lengths = batch["target_lengths"]
+        N = len(input_lengths)  # batch_size
+
+        emissions = self.forward(inputs,phase)
+
+        # Since EMG signals may contain input before and after keystrokes,
+        # we use full sequence length for emissions
+        emission_lengths = torch.tensor([emissions.shape[0]] * N, device=emissions.device)
+
+        loss = self.ctc_loss(
+            log_probs=emissions,  # (T, N, num_classes)
+            targets=targets.transpose(0, 1),  # (T, N) -> (N, T)
+            input_lengths=emission_lengths,  # (N,)
+            target_lengths=target_lengths,  # (N,)
+        )
+
+        # Decode emissions
+        if self.decoder:
+            predictions = self.decoder.decode_batch(
+                emissions=emissions.detach().cpu().numpy(),
+                emission_lengths=emission_lengths.detach().cpu().numpy(),
+            )
+
+            # Update metrics
+            metrics = self.metrics[f"{phase}_metrics"]
+            targets = targets.detach().cpu().numpy()
+            target_lengths = target_lengths.detach().cpu().numpy()
+            for i in range(N):
+                # Unpad targets (T, N) for batch entry
+                target = LabelData.from_labels(targets[: target_lengths[i], i])
+                metrics.update(prediction=predictions[i], target=target)
+
+        self.log(f"{phase}/loss", loss, batch_size=N, sync_dist=True)
+        return loss
+    
+    def _epoch_end(self, phase: str) -> None:
+            metrics = self.metrics[f"{phase}_metrics"]
+            self.log_dict(metrics.compute(), sync_dist=True)
+            metrics.reset()
+
+    def training_step(self, *args, **kwargs) -> torch.Tensor:
+        return self._step("train", *args, **kwargs)
+
+    def validation_step(self, *args, **kwargs) -> torch.Tensor:
+        return self._step("val", *args, **kwargs)
+
+    def test_step(self, *args, **kwargs) -> torch.Tensor:
+        return self._step("test", *args, **kwargs)
+
+    def on_train_epoch_end(self) -> None:
+        self._epoch_end("train")
+
+    def on_validation_epoch_end(self) -> None:
+        self._epoch_end("val")
+
+    def on_test_epoch_end(self) -> None:
+        self._epoch_end("test")
+
+    def configure_optimizers(self) -> dict[str, any]:
+        return utils.instantiate_optimizer_and_scheduler(
+            self.parameters(),
+            optimizer_config=self.hparams.optimizer,
+            lr_scheduler_config=self.hparams.lr_scheduler,
+        )
+        
+class CNNLSTMAlternatorModule(pl.LightningModule):
+    NUM_BANDS: int = 2
+    ELECTRODE_CHANNELS: int = 16
+
+    def __init__(
+        self,
+        in_features: int,
+        cnn_channels: list = [32, 64, 128],
+        kernel_size: int = 3,
+        lstm_hidden_size: int = 256,
+        lstm_num_layers: int = 2,
+        dropout: float = 0.2,
+        optimizer: dict = None,
+        lr_scheduler: dict = None,
+        decoder: dict = None,
+    ) -> None:
+        super().__init__()
+        self.save_hyperparameters()
+        
+        # Spectrogram normalization
+        self.spec_norm = SpectrogramNorm(channels=self.NUM_BANDS * self.ELECTRODE_CHANNELS)
+        
+        # First CNN Block
+        first_cnn_in_channels = self.NUM_BANDS * self.ELECTRODE_CHANNELS
+        self.cnn1 = self._create_cnn_block(first_cnn_in_channels, cnn_channels)
+        
+        # LSTM 1
+        self.lstm1 = nn.LSTM(
+            input_size=cnn_channels[-1],
+            hidden_size=lstm_hidden_size,
+            num_layers=lstm_num_layers,
+            batch_first=False,
+            dropout=dropout if lstm_num_layers > 1 else 0,
+            bidirectional=True
+        )
+        
+        # Second CNN Block (Processing LSTM Output)
+        self.cnn2 = self._create_cnn_block(lstm_hidden_size * 2, cnn_channels)
+        
+        # LSTM 2
+        self.lstm2 = nn.LSTM(
+            input_size=cnn_channels[-1],
+            hidden_size=lstm_hidden_size,
+            num_layers=lstm_num_layers,
+            batch_first=False,
+            dropout=dropout if lstm_num_layers > 1 else 0,
+            bidirectional=True
+        )
+        
+        # Output Projection
+        self.projection = nn.Sequential(
+            nn.Linear(lstm_hidden_size * 2, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, charset().num_classes),
+            nn.LogSoftmax(dim=-1)
+        )
+
+        self.adaptive_pool = nn.AdaptiveAvgPool1d(1)
+        # CTC Loss
+        self.ctc_loss = nn.CTCLoss(blank=charset().null_class, reduction="mean", zero_infinity=True)
+        
+        # Decoder
+        self.decoder = instantiate(decoder) if decoder else None
+        
+        # Metrics
+        metrics = MetricCollection([CharacterErrorRates()])
+        self.metrics = nn.ModuleDict(
+            {f"{phase}_metrics": metrics.clone(prefix=f"{phase}/") for phase in ["train", "val", "test"]}
+        )
+
+    def _create_cnn_block(self, in_channels, cnn_channels):
+        layers = []
+        for out_channels in cnn_channels:
+            layers.extend([
+                nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
+                nn.BatchNorm1d(out_channels),
+                nn.ReLU(),
+                nn.MaxPool1d(kernel_size=2, stride=2)
+            ])
+            in_channels = out_channels
+        return nn.Sequential(*layers)
+    
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        x = self.spec_norm(inputs)
+
+        # Reshape for CNN 1
+        T, N, bands, C, freq = x.shape
+        x = x.reshape(T * N, bands * C, freq)
+
+        # First CNN Block
+        x = self.cnn1(x)
+
+        # Adaptive pooling to match LSTM input size
+        x = self.adaptive_pool(x)
+        
+        # Reshape to (T, N, lstm_hidden_size)
+        x = x.view(T, N, -1)
+        
+        # First LSTM Block
+        x, _ = self.lstm1(x)  
+
+        # Second CNN Block
+        x = x.permute(1, 2, 0)  # Reshape to match CNN input format
+        x = self.cnn2(x)
+        x = x.permute(2, 0, 1)  # Back to (T, N, Features)
+
+        # Second LSTM Block
+        x, _ = self.lstm2(x)
+
+        # Output Projection
+        x = self.projection(x)
+
+        return x
+
 
     def _step(
         self, phase: str, batch: dict[str, torch.Tensor], *args, **kwargs
@@ -452,7 +656,6 @@ class CNNLSTMModule(pl.LightningModule):
             optimizer_config=self.hparams.optimizer,
             lr_scheduler_config=self.hparams.lr_scheduler,
         )
-        
 
 class CNNGRUModule(pl.LightningModule):
     NUM_BANDS: int = 2
@@ -631,7 +834,6 @@ class CNNGRUModule(pl.LightningModule):
             lr_scheduler_config=self.hparams.lr_scheduler,
         )
         
-
 class CNNTransformerModule(pl.LightningModule):
     NUM_BANDS: int = 2
     ELECTRODE_CHANNELS: int = 16
@@ -889,7 +1091,6 @@ class CNNTransformerModule(pl.LightningModule):
             optimizer_config=self.hparams.optimizer,
             lr_scheduler_config=self.hparams.lr_scheduler,
         )
-
 
 # Positional Encoding class needed for Transformer
 class PositionalEncoding(nn.Module):

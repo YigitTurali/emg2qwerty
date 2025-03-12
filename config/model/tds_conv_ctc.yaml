@@ -12,9 +12,18 @@
 #   use_channel_selection: False
 #   use_pca: False
 
+module:
+  # CNN + LSTM Module
+  _target_: emg2qwerty.lightning.CNNLSTMModule
+  in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
+  cnn_channels: [32, 64, 128, 256]
+  lstm_hidden_size: 512
+  lstm_num_layers: 2
+  dropout: 0.2
+
 # module:
-#   # CNN + LSTM Module
-#   _target_: emg2qwerty.lightning.CNNLSTMModule
+#   # CNN + LSTM Alternator Module
+#   _target_: emg2qwerty.lightning.CNNLSTMAlternatorModule
 #   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
 #   cnn_channels: [32, 64, 128, 256]
 #   lstm_hidden_size: 512
@@ -31,35 +40,29 @@
 #   dropout: 0.2
 #   adaptive_pool_size: 1
 
-module:
-  # CNN + Transformer Module
-  _target_: emg2qwerty.lightning.CNNTransformerModule
-  in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
-  cnn_channels: [32, 64, 128, 256]
-  kernel_size: 3
-  transformer_dim: 256
-  nhead: 8
-  num_encoder_layers: 6
-  dim_feedforward: 1024
-  dropout: 0.2
-  max_seq_length: 10000
-  chunk_size: 512
-  chunk_overlap: 128
-  use_time_warping: True
-  use_amplitude_transform: True
-  use_channel_selection: False
-  use_frequency_reduction: False
-  channels_to_keep: 8
-  freq_components: 32
+# module:
+#   # CNN + Transformer Module
+#   _target_: emg2qwerty.lightning.CNNTransformerModule
+#   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
+#   cnn_channels: [32, 64, 128, 256]
+#   kernel_size: 3
+#   transformer_dim: 256
+#   nhead: 8
+#   num_encoder_layers: 6
+#   dim_feedforward: 1024
+#   dropout: 0.2
+#   max_seq_length: 10000
+#   chunk_size: 1024
+#   chunk_overlap: 256
 
 
-module:
-  # Pure RNN Module
-  _target_: emg2qwerty.lightning.RNNModule
-  in_features: 33  # freq * channels = (n_fft // 2 + 1) * 16
-  rnn_hidden_size: 1024
-  rnn_num_layers: 5
-  dropout: 0.2
+# module:
+#   # Pure RNN Module
+#   _target_: emg2qwerty.lightning.RNNModule
+#   in_features: 33  # freq * channels = (n_fft // 2 + 1) * 16
+#   rnn_hidden_size: 1024
+#   rnn_num_layers: 5
+#   dropout: 0.2
 
 datamodule:
   _target_: emg2qwerty.lightning.WindowedEMGDataModule
