@@ -1,0 +1,248 @@
+Global seed set to 1501
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
+Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
+Missing logger folder: /home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/lightning_logs
+Missing logger folder: /home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/lightning_logs
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 4 processes
+----------------------------------------------------------------------------------------------------
+
+Missing logger folder: /home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/lightning_logs
+Missing logger folder: /home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/lightning_logs
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/__init__.py:11: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(numpy, tp_name):
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/models/self_supervised/amdim/amdim_module.py:34: UnderReviewWarning: The feature generate_power_seq is currently marked under review. The compatibility with other Lightning projects is not guaranteed and API may change at any time. The API and functionality may change without warning in future releases. More details: https://lightning-bolts.readthedocs.io/en/latest/stability.html
+  "lr_options": generate_power_seq(LEARNING_RATE_CIFAR, 11),
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/models/self_supervised/amdim/amdim_module.py:92: UnderReviewWarning: The feature FeatureMapContrastiveTask is currently marked under review. The compatibility with other Lightning projects is not guaranteed and API may change at any time. The API and functionality may change without warning in future releases. More details: https://lightning-bolts.readthedocs.io/en/latest/stability.html
+  contrastive_task: Union[FeatureMapContrastiveTask] = FeatureMapContrastiveTask("01, 02, 11"),
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pl_bolts/losses/self_supervised_learning.py:228: UnderReviewWarning: The feature AmdimNCELoss is currently marked under review. The compatibility with other Lightning projects is not guaranteed and API may change at any time. The API and functionality may change without warning in future releases. More details: https://lightning-bolts.readthedocs.io/en/latest/stability.html
+  self.nce_loss = AmdimNCELoss(tclip)
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/hydra/_internal/instantiate/_instantiate2.py:92: UnderReviewWarning: The feature LinearWarmupCosineAnnealingLR is currently marked under review. The compatibility with other Lightning projects is not guaranteed and API may change at any time. The API and functionality may change without warning in future releases. More details: https://lightning-bolts.readthedocs.io/en/latest/stability.html
+  return _target_(*args, **kwargs)
+
+  | Name          | Type              | Params
+----------------------------------------------------
+0 | spec_norm     | SpectrogramNorm   | 64    
+1 | cnn           | Sequential        | 133 K 
+2 | adaptive_pool | AdaptiveAvgPool1d | 0     
+3 | rnn           | LSTM              | 10.5 M
+4 | projection    | Sequential        | 287 K 
+5 | ctc_loss      | CTCLoss           | 0     
+6 | metrics       | ModuleDict        | 0     
+----------------------------------------------------
+10.9 M    Trainable params
+0         Non-trainable params
+10.9 M    Total params
+43.694    Total estimated model params size (MB)
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py:1595: PossibleUserWarning: The number of training batches (30) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+  rank_zero_warn(
+[rank2]:[W reducer.cpp:1389] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank1]:[W reducer.cpp:1389] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank0]:[W reducer.cpp:1389] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank3]:[W reducer.cpp:1389] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+Epoch 0, global step 30: 'val/CER' reached 599.73413 (best 599.73413), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=0-step=30.ckpt' as top 1
+Epoch 1, global step 60: 'val/CER' reached 100.00000 (best 100.00000), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=1-step=60.ckpt' as top 1
+Epoch 2, global step 90: 'val/CER' was not in top 1
+Epoch 3, global step 120: 'val/CER' was not in top 1
+Epoch 4, global step 150: 'val/CER' was not in top 1
+Epoch 5, global step 180: 'val/CER' was not in top 1
+Epoch 6, global step 210: 'val/CER' was not in top 1
+Epoch 7, global step 240: 'val/CER' was not in top 1
+Epoch 8, global step 270: 'val/CER' was not in top 1
+Epoch 9, global step 300: 'val/CER' was not in top 1
+Epoch 10, global step 330: 'val/CER' was not in top 1
+Epoch 11, global step 360: 'val/CER' was not in top 1
+Epoch 12, global step 390: 'val/CER' was not in top 1
+Epoch 13, global step 420: 'val/CER' was not in top 1
+Epoch 14, global step 450: 'val/CER' was not in top 1
+Epoch 15, global step 480: 'val/CER' was not in top 1
+Epoch 16, global step 510: 'val/CER' was not in top 1
+Epoch 17, global step 540: 'val/CER' was not in top 1
+Epoch 18, global step 570: 'val/CER' was not in top 1
+Epoch 19, global step 600: 'val/CER' was not in top 1
+Epoch 20, global step 630: 'val/CER' was not in top 1
+Epoch 21, global step 660: 'val/CER' was not in top 1
+Epoch 22, global step 690: 'val/CER' was not in top 1
+Epoch 23, global step 720: 'val/CER' was not in top 1
+Epoch 24, global step 750: 'val/CER' was not in top 1
+Epoch 25, global step 780: 'val/CER' was not in top 1
+Epoch 26, global step 810: 'val/CER' was not in top 1
+Epoch 27, global step 840: 'val/CER' was not in top 1
+Epoch 28, global step 870: 'val/CER' was not in top 1
+Epoch 29, global step 900: 'val/CER' was not in top 1
+Epoch 30, global step 930: 'val/CER' was not in top 1
+Epoch 31, global step 960: 'val/CER' was not in top 1
+Epoch 32, global step 990: 'val/CER' was not in top 1
+Epoch 33, global step 1020: 'val/CER' was not in top 1
+Epoch 34, global step 1050: 'val/CER' was not in top 1
+Epoch 35, global step 1080: 'val/CER' was not in top 1
+Epoch 36, global step 1110: 'val/CER' was not in top 1
+Epoch 37, global step 1140: 'val/CER' was not in top 1
+Epoch 38, global step 1170: 'val/CER' was not in top 1
+Epoch 39, global step 1200: 'val/CER' was not in top 1
+Epoch 40, global step 1230: 'val/CER' was not in top 1
+Epoch 41, global step 1260: 'val/CER' was not in top 1
+Epoch 42, global step 1290: 'val/CER' was not in top 1
+Epoch 43, global step 1320: 'val/CER' was not in top 1
+Epoch 44, global step 1350: 'val/CER' was not in top 1
+Epoch 45, global step 1380: 'val/CER' was not in top 1
+Epoch 46, global step 1410: 'val/CER' was not in top 1
+Epoch 47, global step 1440: 'val/CER' reached 98.11697 (best 98.11697), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=47-step=1440.ckpt' as top 1
+Epoch 48, global step 1470: 'val/CER' reached 94.12937 (best 94.12937), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=48-step=1470.ckpt' as top 1
+Epoch 49, global step 1500: 'val/CER' reached 89.18919 (best 89.18919), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=49-step=1500.ckpt' as top 1
+Epoch 50, global step 1530: 'val/CER' reached 81.74568 (best 81.74568), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=50-step=1530.ckpt' as top 1
+Epoch 51, global step 1560: 'val/CER' reached 77.58086 (best 77.58086), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=51-step=1560.ckpt' as top 1
+Epoch 52, global step 1590: 'val/CER' reached 74.21355 (best 74.21355), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=52-step=1590.ckpt' as top 1
+Epoch 53, global step 1620: 'val/CER' reached 70.80195 (best 70.80195), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=53-step=1620.ckpt' as top 1
+Epoch 54, global step 1650: 'val/CER' reached 65.86176 (best 65.86176), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=54-step=1650.ckpt' as top 1
+Epoch 55, global step 1680: 'val/CER' reached 59.83607 (best 59.83607), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=55-step=1680.ckpt' as top 1
+Epoch 56, global step 1710: 'val/CER' reached 50.64244 (best 50.64244), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=56-step=1710.ckpt' as top 1
+Epoch 57, global step 1740: 'val/CER' reached 50.42091 (best 50.42091), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=57-step=1740.ckpt' as top 1
+Epoch 58, global step 1770: 'val/CER' reached 42.53434 (best 42.53434), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=58-step=1770.ckpt' as top 1
+Epoch 59, global step 1800: 'val/CER' was not in top 1
+Epoch 60, global step 1830: 'val/CER' reached 39.49934 (best 39.49934), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=60-step=1830.ckpt' as top 1
+Epoch 61, global step 1860: 'val/CER' reached 36.95171 (best 36.95171), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=61-step=1860.ckpt' as top 1
+Epoch 62, global step 1890: 'val/CER' was not in top 1
+Epoch 63, global step 1920: 'val/CER' was not in top 1
+Epoch 64, global step 1950: 'val/CER' reached 32.76473 (best 32.76473), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=64-step=1950.ckpt' as top 1
+Epoch 65, global step 1980: 'val/CER' was not in top 1
+Epoch 66, global step 2010: 'val/CER' reached 32.72042 (best 32.72042), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=66-step=2010.ckpt' as top 1
+Epoch 67, global step 2040: 'val/CER' reached 32.43243 (best 32.43243), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=67-step=2040.ckpt' as top 1
+Epoch 68, global step 2070: 'val/CER' reached 31.59061 (best 31.59061), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=68-step=2070.ckpt' as top 1
+Epoch 69, global step 2100: 'val/CER' reached 28.93221 (best 28.93221), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=69-step=2100.ckpt' as top 1
+Epoch 70, global step 2130: 'val/CER' was not in top 1
+Epoch 71, global step 2160: 'val/CER' was not in top 1
+Epoch 72, global step 2190: 'val/CER' reached 28.53345 (best 28.53345), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=72-step=2190.ckpt' as top 1
+Epoch 73, global step 2220: 'val/CER' was not in top 1
+Epoch 74, global step 2250: 'val/CER' reached 27.82454 (best 27.82454), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=74-step=2250.ckpt' as top 1
+Epoch 75, global step 2280: 'val/CER' reached 27.35933 (best 27.35933), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=75-step=2280.ckpt' as top 1
+Epoch 76, global step 2310: 'val/CER' reached 25.56491 (best 25.56491), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=76-step=2310.ckpt' as top 1
+Epoch 77, global step 2340: 'val/CER' reached 24.96677 (best 24.96677), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=77-step=2340.ckpt' as top 1
+Epoch 78, global step 2370: 'val/CER' was not in top 1
+Epoch 79, global step 2400: 'val/CER' reached 24.61232 (best 24.61232), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=79-step=2400.ckpt' as top 1
+Epoch 80, global step 2430: 'val/CER' was not in top 1
+Epoch 81, global step 2460: 'val/CER' was not in top 1
+Epoch 82, global step 2490: 'val/CER' reached 24.14710 (best 24.14710), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=82-step=2490.ckpt' as top 1
+Epoch 83, global step 2520: 'val/CER' reached 23.26097 (best 23.26097), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=83-step=2520.ckpt' as top 1
+Epoch 84, global step 2550: 'val/CER' reached 21.59947 (best 21.59947), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=84-step=2550.ckpt' as top 1
+Epoch 85, global step 2580: 'val/CER' was not in top 1
+Epoch 86, global step 2610: 'val/CER' was not in top 1
+Epoch 87, global step 2640: 'val/CER' reached 21.55516 (best 21.55516), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=87-step=2640.ckpt' as top 1
+Epoch 88, global step 2670: 'val/CER' was not in top 1
+Epoch 89, global step 2700: 'val/CER' reached 20.93487 (best 20.93487), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=89-step=2700.ckpt' as top 1
+Epoch 90, global step 2730: 'val/CER' was not in top 1
+Epoch 91, global step 2760: 'val/CER' was not in top 1
+Epoch 92, global step 2790: 'val/CER' was not in top 1
+Epoch 93, global step 2820: 'val/CER' reached 20.75764 (best 20.75764), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=93-step=2820.ckpt' as top 1
+Epoch 94, global step 2850: 'val/CER' reached 19.93797 (best 19.93797), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=94-step=2850.ckpt' as top 1
+Epoch 95, global step 2880: 'val/CER' was not in top 1
+Epoch 96, global step 2910: 'val/CER' reached 19.60567 (best 19.60567), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=96-step=2910.ckpt' as top 1
+Epoch 97, global step 2940: 'val/CER' was not in top 1
+Epoch 98, global step 2970: 'val/CER' reached 18.94107 (best 18.94107), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=98-step=2970.ckpt' as top 1
+Epoch 99, global step 3000: 'val/CER' was not in top 1
+Epoch 100, global step 3030: 'val/CER' was not in top 1
+Epoch 101, global step 3060: 'val/CER' reached 18.87461 (best 18.87461), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=101-step=3060.ckpt' as top 1
+Epoch 102, global step 3090: 'val/CER' was not in top 1
+Epoch 103, global step 3120: 'val/CER' reached 17.70049 (best 17.70049), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=103-step=3120.ckpt' as top 1
+Epoch 104, global step 3150: 'val/CER' reached 17.52326 (best 17.52326), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=104-step=3150.ckpt' as top 1
+Epoch 105, global step 3180: 'val/CER' was not in top 1
+Epoch 106, global step 3210: 'val/CER' was not in top 1
+Epoch 107, global step 3240: 'val/CER' was not in top 1
+Epoch 108, global step 3270: 'val/CER' was not in top 1
+Epoch 109, global step 3300: 'val/CER' was not in top 1
+Epoch 110, global step 3330: 'val/CER' was not in top 1
+Epoch 111, global step 3360: 'val/CER' was not in top 1
+Epoch 112, global step 3390: 'val/CER' reached 17.14665 (best 17.14665), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=112-step=3390.ckpt' as top 1
+Epoch 113, global step 3420: 'val/CER' reached 17.03589 (best 17.03589), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=113-step=3420.ckpt' as top 1
+Epoch 114, global step 3450: 'val/CER' was not in top 1
+Epoch 115, global step 3480: 'val/CER' was not in top 1
+Epoch 116, global step 3510: 'val/CER' was not in top 1
+Epoch 117, global step 3540: 'val/CER' was not in top 1
+Epoch 118, global step 3570: 'val/CER' was not in top 1
+Epoch 119, global step 3600: 'val/CER' was not in top 1
+Epoch 120, global step 3630: 'val/CER' was not in top 1
+Epoch 121, global step 3660: 'val/CER' reached 16.94728 (best 16.94728), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=121-step=3660.ckpt' as top 1
+Epoch 122, global step 3690: 'val/CER' was not in top 1
+Epoch 123, global step 3720: 'val/CER' reached 16.74790 (best 16.74790), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=123-step=3720.ckpt' as top 1
+Epoch 124, global step 3750: 'val/CER' was not in top 1
+Epoch 125, global step 3780: 'val/CER' was not in top 1
+Epoch 126, global step 3810: 'val/CER' reached 16.72574 (best 16.72574), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=126-step=3810.ckpt' as top 1
+Epoch 127, global step 3840: 'val/CER' was not in top 1
+Epoch 128, global step 3870: 'val/CER' reached 16.19406 (best 16.19406), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=128-step=3870.ckpt' as top 1
+Epoch 129, global step 3900: 'val/CER' was not in top 1
+Epoch 130, global step 3930: 'val/CER' was not in top 1
+Epoch 131, global step 3960: 'val/CER' was not in top 1
+Epoch 132, global step 3990: 'val/CER' was not in top 1
+Epoch 133, global step 4020: 'val/CER' reached 15.95038 (best 15.95038), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=133-step=4020.ckpt' as top 1
+Epoch 134, global step 4050: 'val/CER' was not in top 1
+Epoch 135, global step 4080: 'val/CER' reached 15.66238 (best 15.66238), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=135-step=4080.ckpt' as top 1
+Epoch 136, global step 4110: 'val/CER' was not in top 1
+Epoch 137, global step 4140: 'val/CER' was not in top 1
+Epoch 138, global step 4170: 'val/CER' reached 15.46300 (best 15.46300), saving model to '/home/yigit/codebase/emg2qwerty/logs/2025-03-09/17-51-27/job0_trainer.devices=4,user=single_user/checkpoints/epoch=138-step=4170.ckpt' as top 1
+Epoch 139, global step 4200: 'val/CER' was not in top 1
+Epoch 140, global step 4230: 'val/CER' was not in top 1
+Epoch 141, global step 4260: 'val/CER' was not in top 1
+Epoch 142, global step 4290: 'val/CER' was not in top 1
+Epoch 143, global step 4320: 'val/CER' was not in top 1
+Epoch 144, global step 4350: 'val/CER' was not in top 1
+Epoch 145, global step 4380: 'val/CER' was not in top 1
+Epoch 146, global step 4410: 'val/CER' was not in top 1
+Epoch 147, global step 4440: 'val/CER' was not in top 1
+Epoch 148, global step 4470: 'val/CER' was not in top 1
+Epoch 149, global step 4500: 'val/CER' was not in top 1
+`Trainer.fit` stopped: `max_epochs=150` reached.
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
+Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
+Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 4 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:315: PossibleUserWarning: Using `DistributedSampler` with the dataloaders. During `trainer.validate()`, it is recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates some samples to make sure all devices have same batch size in case of uneven inputs.
+  rank_zero_warn(
+Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
+Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 4 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+/home/yigit/anaconda3/envs/emg2qwerty/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:315: PossibleUserWarning: Using `DistributedSampler` with the dataloaders. During `trainer.test()`, it is recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates some samples to make sure all devices have same batch size in case of uneven inputs.
+  rank_zero_warn(
