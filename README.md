@@ -15,7 +15,7 @@ _Last updated 3/14/2025_
 ## **New Section Changes:**
   - In ```lightning.py```, we added all our custom models to extend the base architecture for this project. This is where you’ll define and experiment with new model implementations.
   - ```modules.py``` now includes all the preprocessing logic alongside the model components. This centralizes data handling and preparation steps before feeding into the models.
-  - ```config/model/tdcbase.yaml``` contains all the configurations needed to run the file, including hyperparameters and training settings specific to our updated models.
+  - ```config/model/custom_models.yaml``` contains all the configurations needed to run the file, including hyperparameters and training settings specific to our updated models.
 
 # emg2qwerty
 [ [`Paper`](https://arxiv.org/abs/2410.20081) ] [ [`Dataset`](https://fb-ctrl-oss.s3.amazonaws.com/emg2qwerty/emg2qwerty-data-2021-08.tar.gz) ] [ [`Blog`](https://ai.meta.com/blog/open-sourcing-surface-electromyography-datasets-neurips-2024/) ] [ [`BibTeX`](#citing-emg2qwerty) ]
