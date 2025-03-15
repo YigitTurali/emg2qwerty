@@ -14,6 +14,10 @@ _Last updated 2/13/2025_
   - ```config/*.yaml``` - modify model hyperparameters and PyTorch Lightning training configuration
     - **Q: How do we update these configuration files?** A: Note the structure of YAML files include basic key-value pairs (i.e. ```<key>: <value>```) and hierarchical structure. So, for instance, if we wanted to update the ```mlp_features``` hyperparameter of the ```TDSConvCTCModule```, we would change the value at line 5 of ```config/model/tds_conv_ctc.yaml``` (under ```module```). _Read more details [here](https://pytorch-lightning.readthedocs.io/en/1.3.8/common/lightning_cli.html)._
     - **Q: Where do we configure data splitting?** A: Refer to ```config/user/single_user.yaml```. Be careful with your edits, so that you don't accidentally move the test data into your training set.
+  - **New Section Changes:**
+    - In ```lightning.py```, we added all our custom models to extend the base architecture for this project. This is where you’ll define and experiment with new model implementations.
+    - ```modules.py``` now includes all the preprocessing logic alongside the model components. This centralizes data handling and preparation steps before feeding into the models.
+    - ```config/model/tdcbase.yaml``` contains all the configurations needed to run the file, including hyperparameters and training settings specific to our updated models.
 
 # emg2qwerty
 [ [`Paper`](https://arxiv.org/abs/2410.20081) ] [ [`Dataset`](https://fb-ctrl-oss.s3.amazonaws.com/emg2qwerty/emg2qwerty-data-2021-08.tar.gz) ] [ [`Blog`](https://ai.meta.com/blog/open-sourcing-surface-electromyography-datasets-neurips-2024/) ] [ [`BibTeX`](#citing-emg2qwerty) ]
@@ -36,12 +40,6 @@ cd ~/emg2qwerty
 conda env create -f environment.yml
 conda activate emg2qwerty
 pip install -e .
-
-# Download the dataset, extract, and symlink to ~/emg2qwerty/data
-cd ~ && wget https://fb-ctrl-oss.s3.amazonaws.com/emg2qwerty/emg2qwerty-data-2021-08.tar.gz
-tar -xvzf emg2qwerty-data-2021-08.tar.gz
-ln -s ~/emg2qwerty-data-2021-08 ~/emg2qwerty/data
-```
 
 ## Data
 
