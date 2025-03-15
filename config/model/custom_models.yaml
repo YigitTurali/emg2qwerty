@@ -31,7 +31,7 @@ module:
 #   dropout: 0.2
 
 # module:
-#   # CNN + RNN Module
+#   # CNN + GRU Module
 #   _target_: emg2qwerty.lightning.CNNGRUModule
 #   in_features: 528  # freq * channels = (n_fft // 2 + 1) * 16
 #   cnn_channels: [32, 64, 128, 256]
