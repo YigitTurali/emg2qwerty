@@ -1,10 +1,16 @@
 # C147/247 Final Project
 ### Winter 2025 - Mehmet Yigit Turali & Kartik Sharma
 
-## **New Section Changes:**
+## **Changes:**
   - In ```lightning.py```, we added all our custom models to extend the base architecture for this project. This is where you’ll define and experiment with new model implementations.
   - ```modules.py``` now includes all the preprocessing logic alongside the model components. This centralizes data handling and preparation steps before feeding into the models.
   - ```config/model/custom_models.yaml``` contains all the configurations needed to run the file, including hyperparameters and training settings specific to our updated models.
+
+
+
+
+
+
 
 ## Guiding Tips + FAQs + How To Run Our Code
 _Last updated 3/14/2025_
